@@ -1,14 +1,11 @@
-name: Triton SiLU strided-input CUDA validation
-
+name: SGLang MoE router layout validation
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  test:
-    runs-on: [self-hosted, Windows, X64, flashinfer-gpu-2657b8ffb6]
+  gpu:
+    runs-on: [self-hosted, Windows, X64, sglang-router-gpu-2635d27dd3]
     timeout-minutes: 20
     defaults:
       run:
@@ -17,60 +14,54 @@ jobs:
       MASK_MACHINE: ${{ secrets.MASK_MACHINE }}
       MASK_USER: ${{ secrets.MASK_USER }}
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
-      GIT_TERMINAL_PROMPT: '0'
       CC: 'C:\PR\flashinfer-triton-windows-20261108\triton\runtime\tcc\tcc.exe'
       CUDA_PATH: 'C:\PR\flashinfer-triton-windows-20261108\triton\backends\nvidia'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Verify pinned sources and GPU
+      - name: Check pinned sources and GPU
         run: |
-          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -c "import hashlib,pathlib; pairs=[('flashinfer/triton/activation.py','45006dd1805fc2a541fa7721b632131e1b5ce7d3b267bbe4b997d137fc33b0c7'),('flashinfer/triton/kernels/activation.py','2d90c139c68d6f6a482459cdd6c20b4d4e283bc44e8f5ff2e24152a8216a9efc'),('flashinfer/triton/kernels/quant.py','6b45d22b3e87b7a501d6493d310d629d3b8b41e1c459d0844794ac0c96b94c05'),('tests/utils/test_triton_activation.py','d38da306cb58a47c357a339d3f4bbde3e5a840bac45e5c7315357da13b16c606'),('baseline_activation.py','4d601d95b6eda38fa0b43b549dcae3d18f1925947e3ce88fd93a95b4b267313c'),('baseline_kernel.py','05c3d886cf261d0483f8616bbed22e968e2c6ba1f84b2c083b9e7d1f8410d868'),('flashinfer_activation_test_adapter_20261108.py','1550d0b7a8dc68e74182fd6c433b7f398f3dd6c46d789005fc8a9095f894d5d7')]; assert all(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()==h for p,h in pairs); print('All source hashes verified')"
+          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -c "import hashlib,pathlib; pairs=[('baseline/python/sglang/kernels/ops/moe/moe_route_warp.py', '74761b541ed7710896910c5ba455f06917a96330b67d717a584818020245c085'), ('baseline/python/sglang/kernels/ops/moe/moe_fused_gate.py', 'ebe428a56a9da243eaf473887deb1c00e817ede24dc8498dc80860abe16338e7'), ('baseline/python/sglang/kernels/ops/moe/moe_route_radix.py', '84a7b2e8977dbcca38b92fd56ecf8c72f4d6cb8dac484fd137ea96bad64682ed'), ('baseline/python/sglang/kernels/kernel_api_logging.py', 'd3cfbaa939422f47b84b96a8878a98b178a7182a79656440c08938804517c4f7'), ('baseline/python/sglang/srt/layers/moe/topk.py', '53eaaa7d339c7308518ec07559ac6939a44b92c14efdf37a4ab01f5a9e5df82d'), ('patched/python/sglang/kernels/ops/moe/moe_route_warp.py', '9ca141b1f38553aa26957ce030b3602baf7e5da4aeabd18323183e92069a0d20'), ('patched/python/sglang/kernels/ops/moe/moe_fused_gate.py', '10edba8e67291b1c5341ef45d2935e9ca8cd231068945187cad57c9099a34869'), ('patched/python/sglang/kernels/ops/moe/moe_route_radix.py', '84a7b2e8977dbcca38b92fd56ecf8c72f4d6cb8dac484fd137ea96bad64682ed'), ('patched/python/sglang/kernels/kernel_api_logging.py', 'd3cfbaa939422f47b84b96a8878a98b178a7182a79656440c08938804517c4f7'), ('patched/python/sglang/srt/layers/moe/topk.py', 'd262a62dfc4d6d824b311eb4ed4f3fd0427c2dbd8c8901898c2a8628577aeba5'), ('patched/test/registered/kernels/ops/moe/test_moe_route_warp.py', '05fa050e9a869935f44603bc96db65fec0044b5bca494473769b09ae6a990bfd'), ('patched/test/registered/kernels/ops/moe/test_moe_fused_gate.py', 'b93b0ac2c6b0d6c5532fe31e0d3945961f4db21390851b160eb3cc00827253b1'), ('sglang_router_test_adapter_20261110.py', 'faf5a90625ab2bf996187153d1c68425ea08bc64c502ad9d6e6c2d2eeccada41'), ('sglang_router_alignment_check_20261110.py', 'b7f53d4b9c23fc7ec5c72701d00ff85a2c904dd140e538946b4ab18896c7d077'), ('.gitattributes', '705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da')]; assert all(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()==h for p,h in pairs); print('Pinned source hashes verified')"
           if ($LASTEXITCODE -ne 0) { throw 'Source hash verification failed' }
-          Write-Host 'FlashInfer commit: 89a475dee51a945faba3d883ac045fe021f33dff'
-          Write-Host 'Original upstream commit: 11bf37df449b8b478e858e7a8ba432976b28457e'
-          nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
-          if ($LASTEXITCODE -ne 0) { throw 'nvidia-smi failed' }
+          Write-Host 'Base commit: 6a79760533e7b97efcc64c0440df6a56d24bf7bc'
+          Write-Host 'Patch commit: 55e34ae67a877e1e68134ae033803acffdce81e8'
           $env:PYTHONPATH = "$env:GITHUB_WORKSPACE;C:\PR\flashinfer-triton-windows-20261108"
           & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -c "import torch,triton; assert torch.cuda.is_available(); print('GPU:',torch.cuda.get_device_name(0),'PyTorch:',torch.__version__,'CUDA:',torch.version.cuda,'Triton:',triton.__version__)"
           if ($LASTEXITCODE -ne 0) { throw 'GPU check failed' }
-      - name: Confirm baseline failures
+      - name: Confirm original dispatch failures
         run: |
           $env:PYTHONPATH = "$env:GITHUB_WORKSPACE;C:\PR\flashinfer-triton-windows-20261108"
-          $baseline = Join-Path $env:RUNNER_TEMP ("flashinfer-baseline-" + $env:GITHUB_RUN_ID)
-          New-Item -ItemType Directory -Force -Path $baseline | Out-Null
-          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'flashinfer') -Destination $baseline -Recurse
-          Copy-Item -LiteralPath 'baseline_activation.py' -Destination (Join-Path $baseline 'flashinfer/triton/activation.py') -Force
-          Copy-Item -LiteralPath 'baseline_kernel.py' -Destination (Join-Path $baseline 'flashinfer/triton/kernels/activation.py') -Force
-          $env:FLASHINFER_SOURCE_ROOT = $baseline
-          $test = Join-Path $env:GITHUB_WORKSPACE 'tests/utils/test_triton_activation.py'
-          $output = & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -m pytest -p flashinfer_activation_test_adapter_20261108 --noconftest -o addopts='' $test -q --tb=no 2>&1 | Out-String
+          $env:SGLANG_ROUTER_SOURCE_ROOT = Join-Path $env:GITHUB_WORKSPACE 'baseline'
+          $test1 = Join-Path $env:GITHUB_WORKSPACE 'patched/test/registered/kernels/ops/moe/test_moe_route_warp.py'
+          $test2 = Join-Path $env:GITHUB_WORKSPACE 'patched/test/registered/kernels/ops/moe/test_moe_fused_gate.py'
+          $output = & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -m pytest -p sglang_router_test_adapter_20261110 --noconftest -o addopts='' $test1 $test2 -k 'strided_scores_fall_back or aligned_padded_scores_keep_fast_path' -q --tb=no 2>&1 | Out-String
           $testExit = $LASTEXITCODE
           Write-Host $output
-          if ($testExit -ne 1 -or $output -notmatch '25 failed, 12 passed') { throw 'Unexpected baseline result' }
-          exit 0
-      - name: Run patched Triton kernel on CUDA
+          if ($testExit -ne 1 -or $output -notmatch '10 failed, 2 passed') { throw 'Unexpected baseline result' }
+      - name: Validate patched dispatch and real Triton fallback
         run: |
           $env:PYTHONPATH = "$env:GITHUB_WORKSPACE;C:\PR\flashinfer-triton-windows-20261108"
-          $env:FLASHINFER_SOURCE_ROOT = $env:GITHUB_WORKSPACE
-          $test = Join-Path $env:GITHUB_WORKSPACE 'tests/utils/test_triton_activation.py'
-          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -m pytest -p flashinfer_activation_test_adapter_20261108 --noconftest -o addopts='' $test -q --tb=short
-          if ($LASTEXITCODE -ne 0) { throw 'Patched CUDA tests failed' }
-
-  pre-commit:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+          $env:SGLANG_ROUTER_SOURCE_ROOT = Join-Path $env:GITHUB_WORKSPACE 'patched'
+          $test1 = Join-Path $env:GITHUB_WORKSPACE 'patched/test/registered/kernels/ops/moe/test_moe_route_warp.py'
+          $test2 = Join-Path $env:GITHUB_WORKSPACE 'patched/test/registered/kernels/ops/moe/test_moe_fused_gate.py'
+          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -m pytest -p sglang_router_test_adapter_20261110 --noconftest -o addopts='' $test1 $test2 -k 'strided_scores_fall_back or aligned_padded_scores_keep_fast_path' -q --tb=short
+          if ($LASTEXITCODE -ne 0) { throw 'Patched GPU tests failed' }
+          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' sglang_router_alignment_check_20261110.py
+          if ($LASTEXITCODE -ne 0) { throw 'Alignment checks failed' }
+  precommit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          repository: bingdongni/flashinfer
-          ref: 89a475dee51a945faba3d883ac045fe021f33dff
+          repository: bingdongni/sglang
+          ref: 55e34ae67a877e1e68134ae033803acffdce81e8
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
-          python-version: '3.12'
-      - name: Run repository hooks on changed files
-        run: |
-          python -m pip install pre-commit
-          pre-commit run --files flashinfer/triton/activation.py flashinfer/triton/kernels/activation.py tests/utils/test_triton_activation.py
+          python-version: '3.11'
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - name: Run project hooks on all files
+        run: pre-commit run --all-files --show-diff-on-failure
