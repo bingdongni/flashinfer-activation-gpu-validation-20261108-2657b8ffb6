@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: [self-hosted, Windows, X64, flashinfer-gpu-2657b8ffb6]
+    runs-on: [self-hosted, Windows, X64, flashinfer-review-gpu-56c386a76b]
     timeout-minutes: 20
     defaults:
       run:
@@ -26,10 +26,10 @@ jobs:
           persist-credentials: false
       - name: Verify pinned sources and GPU
         run: |
-          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -c "import hashlib,pathlib; pairs=[('flashinfer/triton/activation.py','45006dd1805fc2a541fa7721b632131e1b5ce7d3b267bbe4b997d137fc33b0c7'),('flashinfer/triton/kernels/activation.py','2d90c139c68d6f6a482459cdd6c20b4d4e283bc44e8f5ff2e24152a8216a9efc'),('flashinfer/triton/kernels/quant.py','6b45d22b3e87b7a501d6493d310d629d3b8b41e1c459d0844794ac0c96b94c05'),('tests/utils/test_triton_activation.py','d38da306cb58a47c357a339d3f4bbde3e5a840bac45e5c7315357da13b16c606'),('baseline_activation.py','4d601d95b6eda38fa0b43b549dcae3d18f1925947e3ce88fd93a95b4b267313c'),('baseline_kernel.py','05c3d886cf261d0483f8616bbed22e968e2c6ba1f84b2c083b9e7d1f8410d868'),('flashinfer_activation_test_adapter_20261108.py','1550d0b7a8dc68e74182fd6c433b7f398f3dd6c46d789005fc8a9095f894d5d7')]; assert all(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()==h for p,h in pairs); print('All source hashes verified')"
+          & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -c "import hashlib,pathlib; pairs=[('flashinfer/triton/activation.py','45006dd1805fc2a541fa7721b632131e1b5ce7d3b267bbe4b997d137fc33b0c7'),('flashinfer/triton/kernels/activation.py','b2049275946874adc979fb27d60f3acd7b7d4e8b5c9a04296475f7417ff85db7'),('flashinfer/triton/kernels/quant.py','6b45d22b3e87b7a501d6493d310d629d3b8b41e1c459d0844794ac0c96b94c05'),('tests/utils/test_triton_activation.py','03a100facb7ee4f87027678fb2301d5a21bf30eb3f67506e66aab5d1ab56f965'),('baseline_activation.py','45006dd1805fc2a541fa7721b632131e1b5ce7d3b267bbe4b997d137fc33b0c7'),('baseline_kernel.py','2d90c139c68d6f6a482459cdd6c20b4d4e283bc44e8f5ff2e24152a8216a9efc'),('flashinfer_activation_test_adapter_20261108.py','1550d0b7a8dc68e74182fd6c433b7f398f3dd6c46d789005fc8a9095f894d5d7')]; assert all(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()==h for p,h in pairs); print('All source hashes verified')"
           if ($LASTEXITCODE -ne 0) { throw 'Source hash verification failed' }
-          Write-Host 'FlashInfer commit: 89a475dee51a945faba3d883ac045fe021f33dff'
-          Write-Host 'Original upstream commit: 11bf37df449b8b478e858e7a8ba432976b28457e'
+          Write-Host 'FlashInfer commit: ecceae82694e1bea742ff15b7e8ea781975553db'
+          Write-Host 'Original upstream commit: 89a475dee51a945faba3d883ac045fe021f33dff'
           nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
           if ($LASTEXITCODE -ne 0) { throw 'nvidia-smi failed' }
           $env:PYTHONPATH = "$env:GITHUB_WORKSPACE;C:\PR\flashinfer-triton-windows-20261108"
@@ -48,7 +48,7 @@ jobs:
           $output = & 'C:\PR\kvpress-gpu-venv-20261107\Scripts\python.exe' -m pytest -p flashinfer_activation_test_adapter_20261108 --noconftest -o addopts='' $test -q --tb=no 2>&1 | Out-String
           $testExit = $LASTEXITCODE
           Write-Host $output
-          if ($testExit -ne 1 -or $output -notmatch '25 failed, 12 passed') { throw 'Unexpected baseline result' }
+          if ($testExit -ne 1 -or $output -notmatch '12 failed, 37 passed') { throw 'Unexpected baseline result' }
           exit 0
       - name: Run patched Triton kernel on CUDA
         run: |
@@ -65,9 +65,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: bingdongni/flashinfer
-          ref: 89a475dee51a945faba3d883ac045fe021f33dff
+          ref: ecceae82694e1bea742ff15b7e8ea781975553db
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
       - name: Run repository hooks on changed files
